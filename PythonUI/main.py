@@ -7,6 +7,7 @@ def initialize_GUI():
     frame.grid()
 
     ttk.Label(frame, text="Hello, world!").grid(column=0, row=0)
+    ttk.Button(frame, text="Wow").grid(column=0, row=1)
 
     root.mainloop()
 
