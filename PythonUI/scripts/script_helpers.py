@@ -30,7 +30,7 @@ def _get_python_path(use_venv: bool):
 
 def run_command(args: list[str], capture_output=False, use_venv: bool=True):
     python = str(_get_python_path(use_venv))
-    print('running', [python, '-m'] + args)
+    print('Running:', python + ' -m ' + " ".join(args))
     # Run a terminal command using subprocess library
     result = subprocess.run(
         [python, '-m'] + args, # Add {Python executable} -m in front of args so the command is run in the correct environment
