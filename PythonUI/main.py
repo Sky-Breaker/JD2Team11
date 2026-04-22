@@ -1,8 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
 
-import numpy as np
-
 def initialize_GUI():
     root = tk.Tk()
     frame = ttk.Frame(root, padding=10)
