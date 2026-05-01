@@ -1,5 +1,3 @@
-import tkinter as tk
-from tkinter import ttk
 import time
 import sys
 import os
@@ -29,7 +27,7 @@ def show_help():
     print()
 
     while True: 
-        choice = input("Enter your choice: ").strip().lower()
+        choice = input("Enter your choice").strip().lower()
         if choice == 'g0':
             print("Move arm at maximum speed to given coordinate")
         elif choice == 'g1':
@@ -88,19 +86,5 @@ def main():
 
    
 
-#if __name__ ==  "__main__":
-    #main
-def initialize_GUI():
-    root = tk.Tk()
-    frame = ttk.Frame(root, padding=10)
-    frame.grid()
-
-    ttk.Label(frame, text="Hello, world!").grid(column=0, row=0)
-    ttk.Button(frame, text="Wow").grid(column=0, row=1)
-
-    root.mainloop()
-
-
-if __name__ == "__main__":
-    main()
-    #initialize_GUI()
+if __name__ ==  "__main__":
+    main
