@@ -1,0 +1,150 @@
+---
+title: "Quarto Basics"
+format: html
+---
+
+
+## Encoder Rotational Accuracy
+```{python}
+# counts_per_rev = 2000
+# increments_per_rev = counts_per_rev * 4
+# deg_per_increment = 360 / increments_per_rev
+deg_per_increment = 1.8
+
+pulse_width_error = 5
+logic_state_width_error = 3
+phase_error = 2
+
+# error_deg = (pulse_width_error + logic_state_width_error + phase_error) / counts_per_rev # degrees/electrical_degree = 1/counts_per_rev
+total_accuracy_deg = deg_per_increment # + error_deg
+
+motor_output_gear_ratio = 1/20 # 1/6
+geartrain_backlash_deg = 1/6 # 1/10 # 6 arcminutes
+output_accuracy_deg = total_accuracy_deg * motor_output_gear_ratio + geartrain_backlash_deg
+
+print("Output Accuracy Degrees:", output_accuracy_deg)
+
+```
+
+## Test Sympy for IK
+```{python}
+from sympy import *
+from IPython.display import Markdown
+
+m_x, m_y = symbols('m_x, m_y')
+L_1, L_2, E_x, E_y = symbols('L1, L2, E_x, E_y')
+
+ans = solve([Eq(sqrt(m_x**2 + m_y**2),L_1), Eq(sqrt((m_x-E_x)**2+(m_y-E_y)**2),L_2)], [m_x, m_y])
+
+print('Answer: ', ans)
+
+ans_x_latex_raw = latex(ans[0][0])
+ans_y_latex_raw = latex(ans[0][1])
+print('Latex output: ', ans_x_latex_raw)
+
+ans_x_latex = Markdown(ans_x_latex_raw)
+ans_y_latex = Markdown(ans_x_latex_raw)
+```
+
+### IK X Midpoint Position
+$$
+M_x=`{python} ans_x_latex`
+$$
+
+
+## SCARA Positioning Accuracy
+```{python}
+import matplotlib.pyplot as plt
+from matplotlib import patches
+import numpy as np
+
+# Work Area Plot Values
+plot_resolution = 256
+width_mm = 13 * 25.4
+height_mm = 12 * 25.4
+
+# Arm Values
+upper_arm_length_mm = 6.2 * 25.4
+lower_arm_length_mm = 4.8 * 25.4
+
+X, Y = np.meshgrid(np.linspace(-width_mm/2, width_mm/2, plot_resolution),
+                        np.linspace(0, height_mm, plot_resolution))
+
+# Plot Arm Angles
+fig1, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, sharex=True)
+
+angle_plot_reduction_factor = 16
+def reduce_arr(array):
+    return np.array([row[::angle_plot_reduction_factor] for row in array[::angle_plot_reduction_factor]])
+
+X_red, Y_red = np.meshgrid(np.array(X[0][::angle_plot_reduction_factor]), np.array([e[0] for e in Y[::angle_plot_reduction_factor]]))
+
+endpoint_base_dist = np.sqrt(X**2 + Y**2)
+theta_center = 2 * np.atan(Y / (X + endpoint_base_dist))
+
+A = lower_arm_length_mm
+B = upper_arm_length_mm
+C = endpoint_base_dist
+alpha_1_inner = np.acos((B**2 + C**2 - A**2)/(2*B*C))
+alpha_1 = theta_center-alpha_1_inner
+
+alpha_2 = 2 * np.atan( (Y - upper_arm_length_mm * np.sin(alpha_1)) / (X - upper_arm_length_mm * np.cos(alpha_1) + lower_arm_length_mm) )
+
+graph_padding_mm = 20
+
+ax1.quiver(X_red, Y_red, reduce_arr(np.cos(alpha_1)), reduce_arr(np.sin(alpha_1)), color="C0", angles='xy', scale_units='xy', scale=0.07, width=0.01)
+ax1.set(xlim=(-width_mm/2 - graph_padding_mm, width_mm/2 + graph_padding_mm), 
+        ylim=(-graph_padding_mm, height_mm + graph_padding_mm))
+ax1.set_title("Upper Arm Angle")
+ax1.set_xlabel("Position X (mm)")
+ax1.set_ylabel("Position Y (mm)")
+
+ax2.quiver(X_red, Y_red, reduce_arr(np.cos(alpha_2)), reduce_arr(np.sin(alpha_2)), color="C0", angles='xy', scale_units='xy', scale=0.07, width=0.01)
+ax2.set(xlim=(-width_mm/2 - graph_padding_mm, width_mm/2 + graph_padding_mm), 
+        ylim=(-graph_padding_mm, height_mm + graph_padding_mm))
+ax2.set_title("Lower Arm Angle")
+ax2.set_xlabel("Position X (mm)")
+ax2.set_ylabel("Position Y (mm)")
+
+fig1.tight_layout()
+
+# Plot Positioning Error
+fig2, ax3 = plt.subplots()
+
+output_accuracy_rad = np.deg2rad(output_accuracy_deg)
+
+def calculate_position_errors(X, Y, alpha_1_delta, alpha_2_delta):
+    alpha_1_offset = alpha_1 + alpha_1_delta
+    alpha_2_offset = alpha_2 + alpha_2_delta
+    X_offset = upper_arm_length_mm * np.cos(alpha_1_offset) + lower_arm_length_mm * np.cos(alpha_2_offset)
+    Y_offset = upper_arm_length_mm * np.sin(alpha_1_offset) + lower_arm_length_mm * np.sin(alpha_2_offset)
+    position_errors = np.sqrt((X_offset - X)**2 + (Y_offset - Y)**2)
+    return position_errors
+
+angle_deltas = [(output_accuracy_rad, output_accuracy_rad), (output_accuracy_rad, -output_accuracy_rad)]
+position_error_components = list(range(0, 2))
+for e in position_error_components:
+    position_error_components[e] = calculate_position_errors(X, Y, angle_deltas[e][0], angle_deltas[e][1])
+
+position_error_components_nparr = np.array(position_error_components)
+OffsetError = np.max(position_error_components_nparr, axis=0)
+total_max = np.nanmax(OffsetError)
+display_total_max = str(round(total_max, 3))
+# print("Maximum overall error: ", display_total_max)
+
+error_plot = ax3.pcolormesh(X, Y, OffsetError, vmin=0, vmax=2)
+error_colorbar = fig2.colorbar(error_plot)
+ax3.set_title("Positioning Error due to Motor Accuracy")
+ax3.set_xlabel("Position X (mm)")
+ax3.set_ylabel("Position Y (mm)")
+error_colorbar.set_label("End Effector Position Error Magnitude (mm)")
+
+rect = patches.Rectangle((-5 * 25.4, 1.7 * 25.4), width=10 * 25.4, height=8 * 25.4, fill=False, edgecolor='tab:orange')
+ax3.add_artist(rect)
+
+plt.show()
+```
+
+
+Maximum positioning error: `{python} display_total_max`mm
+
