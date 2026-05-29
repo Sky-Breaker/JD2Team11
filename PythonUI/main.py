@@ -258,7 +258,7 @@ def main(page: ft.Page):
             return
         build_fields(n)
         t1h, t2h = ik(ARM_ORIGIN_X + 30, ARM_ORIGIN_Y - 80)
-        refresh([50.0] * n, t1h, t2h)
+        refresh([5.0] * n, t1h, t2h)
         page.update()
 
     num_field = make_textfield("Number of lines (1–5)", "3",
@@ -298,7 +298,7 @@ def main(page: ft.Page):
             n = 3
         build_fields(n)
         t1h, t2h = ik(ARM_ORIGIN_X + 30, ARM_ORIGIN_Y - 80)
-        refresh([50.0] * n, t1h, t2h)
+        refresh([5.0] * n, t1h, t2h)
         status.value = "Reset — configure and press Run →"
         status.style = ft.TextStyle(color=TEXT_SEC, size=11)
         status.update()
@@ -388,6 +388,9 @@ def main(page: ft.Page):
         legend_item(LINE_GHOST, "Target", dashed=True),
         ft.Row([ft.Container(width=10, height=10, bgcolor=ARM_TIP, border_radius=5),
                 ft.Text("Tool tip", style=ft.TextStyle(color=TEXT_SEC, size=10))],
+               spacing=6),
+        ft.Row([ft.Container(width=10, height=10, bgcolor=ARM_JOINT, border_radius=5),
+                ft.Text("Pivot Point", style=ft.TextStyle(color=TEXT_SEC, size=10))],
                spacing=6),
     ])
 
